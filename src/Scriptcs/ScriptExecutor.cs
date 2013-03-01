@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Roslyn.Scripting.CSharp;
 using Scriptcs.Contracts;
+using Roslyn.Scripting;
 
 namespace Scriptcs
 {
@@ -23,9 +24,11 @@ namespace Scriptcs
         public void Execute(string script, IEnumerable<string> paths, IEnumerable<IScriptcsRecipe> recipes)
         {
             var engine = new ScriptEngine();
-            engine.AddReference("System");
+            var session = Session.Create();
+            session.AddReference("System");
             var bin = _fileSystem.CurrentDirectory + @"\bin";
-            engine.BaseDirectory = bin;
+            session.SetReferenceSearchPaths(
+                session.GetReferenceSearchPaths().Append(bin));
 
             if (!_fileSystem.DirectoryExists(bin))
             {
@@ -34,13 +37,12 @@ namespace Scriptcs
                 {
                     var destFile = bin + @"\" + Path.GetFileName(file);
                     _fileSystem.Copy(file, destFile);
-                    engine.AddReference(destFile);
+                    session.AddReference(destFile);
                 }
             }
 
-            var session = engine.CreateSession();
             var csx = _fileSystem.ReadFile(_fileSystem.CurrentDirectory + @"\" + script);
-            session.Execute(csx);
+            engine.Execute(csx, session);
         }
 
     }
